@@ -10,9 +10,10 @@ class Users(db.Model):
 
     __tablename__ = "assignments"
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String, nullable=False)
+    username = db.Column(db.String, nullable=False, unique=True)
     caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
     favorites = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
+    session_token = db.Column(db.String, nullable=False)
 
     def __init__(self, **kwargs):
         self.username = kwargs.get("username", "")
