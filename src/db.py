@@ -5,7 +5,7 @@ db = SQLAlchemy()
 
 class Users(db.Model):
     '''
-    Class for the users table (untested)
+    Class for the users table (untested - needs cache class to implement fully)
     '''
 
     __tablename__ = "assignments"
