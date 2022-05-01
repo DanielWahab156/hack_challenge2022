@@ -2,13 +2,22 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+favorites_table = db.Table("favorites", db.Model.metadata,
+    db.Column("users_id", db.String, db.ForeignKey("users.id")),
+    db.Column("cache_id", db.String, db.ForeignKey("caches.id")),
+)
+
+caches_completed = db.Table("caches_completed", db.Model.metadata,
+    db.Column("users_id", db.String, db.ForeignKey("users.id")),
+    db.Column("caches_id", db.String, db.ForeignKey("caches.id")),
+)
 
 class Users(db.Model):
     '''
     Class for the users table (untested - needs cache class to implement fully)
     '''
 
-    __tablename__ = "assignments"
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False, unique=True)
     caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
@@ -28,7 +37,7 @@ class Users(db.Model):
         return {
             "id": self.id,
             "username": self.username,
-            "caches_completed": self.caches_completed,
+            "caches_completed": [cache.serialize() for cache in self.caches_completed], # might want to change to a simpler serialization
             "favorites": self.favorites,
         }
 
