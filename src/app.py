@@ -18,7 +18,13 @@ with app.app_context():
 
 #generalized response formats
 def success_response(data, code=200):
+    """
+    Generalized success response function
+    """
     return json.dumps(data), code
 
 def failure_response(message, code=404):
+    """
+    Generalized failure response function
+    """
     return json.dumps({"error": message}), code
