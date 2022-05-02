@@ -1,4 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
+import datetime
+import hashlib
+import os
+import bcrypt
 
 db = SQLAlchemy()
 
@@ -40,7 +44,7 @@ class User(db.Model):
         return {
             "id": self.id,
             "username": self.username,
-            "caches_completed": [cache.serialize() for cache in self.caches_completed], # might want to change to a simpler serialization
+            "caches_completed": [cache.simple_serialize() for cache in self.caches_completed],
             "favorites": self.favorites,
         }
 
@@ -90,5 +94,17 @@ class Cache(db.Model):
             "difficulty": self.difficulty,
             "terrain": self.terrain,
             "last_found": self.last_found,
+            "date_created": self.date_created,
+        }
+
+    def simple_serialize(self):
+        """
+        Simple serializes a Cache object with compact information
+        """
+        return {
+            "id": self.id,
+            "location": self.location,
+            "description": self.description,
+            "difficulty": self.difficulty,
             "date_created": self.date_created,
         }
