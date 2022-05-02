@@ -12,7 +12,7 @@ favorites_table = db.Table(
     db.Column("cache_id", db.String, db.ForeignKey("caches.id")),
 )
 
-caches_completed = db.Table(
+caches_completed_table = db.Table(
     "caches_completed",
     db.Column("users_id", db.String, db.ForeignKey("users.id")),
     db.Column("caches_id", db.String, db.ForeignKey("caches.id")),
@@ -26,8 +26,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     username = db.Column(db.String, nullable=False, unique=True)
-    caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
-    favorites = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
+    # caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
+    # favorites = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
+
+    caches_completed = db.relationship("Cache", secondary=caches_completed_table, back_populates="users")
+    cache_favorites = db.relationship("Cache", secondary=favorites_table, back_populates="users")
+
 
     session_token = db.Column(db.String, nullable=False)
     session_expiration = db.Column(db.DateTime, nullable=False)
@@ -97,12 +101,15 @@ class Cache(db.Model):
     created_by = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
-    hint = db.Column(db.String,)
-    size = db.Column()
-    difficulty = db.Column()
-    terrain = db.Column()
+    hint = db.Column(db.String)
+    size = db.Column(db.String)
+    difficulty = db.Column(db.String)
+    terrain = db.Column(db.String)
     last_found = db.Column(db.Integer)
     date_created = db.Column(db.Integer, nullable=False)
+
+    user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches")
+    user_favorites = db.relationship("User", secondary=favorites_table, back_populates="caches")
 
     def __init__(self, **kwargs):
         """
