@@ -24,6 +24,7 @@ class User(db.Model):
     """
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
     username = db.Column(db.String, nullable=False, unique=True)
     caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
     favorites = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
