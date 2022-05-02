@@ -2,21 +2,22 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-favorites_table = db.Table("favorites", db.Model.metadata,
+favorites_table = db.Table(
+    "favorites",
     db.Column("users_id", db.String, db.ForeignKey("users.id")),
     db.Column("cache_id", db.String, db.ForeignKey("caches.id")),
 )
 
-caches_completed = db.Table("caches_completed", db.Model.metadata,
+caches_completed = db.Table(
+    "caches_completed",
     db.Column("users_id", db.String, db.ForeignKey("users.id")),
     db.Column("caches_id", db.String, db.ForeignKey("caches.id")),
 )
 
-class Users(db.Model):
-    '''
-    Class for the users table (untested - needs cache class to implement fully)
-    '''
-
+class User(db.Model):
+    """
+    User model
+    """
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False, unique=True)
@@ -25,15 +26,17 @@ class Users(db.Model):
     session_token = db.Column(db.String, nullable=False)
 
     def __init__(self, **kwargs):
+        """
+        Initializes a User object
+        """
         self.username = kwargs.get("username", "")
         self.caches_completed = kwargs.get("caches_completed")
         self.favorites = kwargs.get("favorites")
 
     def serialize(self):
-        '''
-        Full serialization of the users table
-        '''
-
+        """
+        Serializes a User object
+        """
         return {
             "id": self.id,
             "username": self.username,
@@ -50,19 +53,13 @@ class Cache(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     created_by = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
-    # distance_from_user = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String, nullable=False)
     hint = db.Column(db.String,)
-    #is there a way to make only 3 inputs possible (small, medium large) drop-down menu
     size = db.Column()
-    # elementary, middle, high, college
     difficulty = db.Column()
-    # easy, medium, hard
     terrain = db.Column()
-    # we need dates here
     last_found = db.Column(db.Integer)
     date_created = db.Column(db.Integer, nullable=False)
-    # user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     def __init__(self, **kwargs):
         """
@@ -70,7 +67,6 @@ class Cache(db.Model):
         """
         self.created_by = kwargs.get("created_by", "")
         self.location = kwargs.get("location", "")
-        # self.distance_from_user = kwargs.get("distance_from_user", "")
         self.description = kwargs.get("description", "")
         self.hint = kwargs.get("hint", "")
         self.size = kwargs.get("size", "")
@@ -78,17 +74,16 @@ class Cache(db.Model):
         self.terrain = kwargs.get("terrain", "")
         self.last_found = kwargs.get("last_found", "")
         self.date_created = kwargs.get("date_created", "")
-        # self.user_id = kwargs.get("user_id", "")
 
     def serialize(self):
         """
         Serializes a Cache object
         """
-        user = User.query.filter_by(username=self.username)# .first()
+        user = User.query.filter_by(username=self.username)
         return {
             "id": self.id,
+            "username": user.username,
             "location": self.location,
-            # "distance_from_user": self.distance_from_user,
             "description": self.description,
             "hint": self.hint,
             "size": self.size,
@@ -96,5 +91,4 @@ class Cache(db.Model):
             "terrain": self.terrain,
             "last_found": self.last_found,
             "date_created": self.date_created,
-            "user": user.username
         }
