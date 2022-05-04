@@ -26,12 +26,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     username = db.Column(db.String, nullable=False, unique=True)
-    # caches_completed = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
-    # favorites = db.Column(db.Integer, db.ForeignKey("caches.id"), nullable=False)
-
+    
+    caches = db.relationship("Cache")
     caches_completed = db.relationship("Cache", secondary=caches_completed_table, back_populates="users")
-    cache_favorites = db.relationship("Cache", secondary=favorites_table, back_populates="users")
-
+    caches_favorited = db.relationship("Cache", secondary=favorites_table, back_populates="users")
 
     session_token = db.Column(db.String, nullable=False)
     session_expiration = db.Column(db.DateTime, nullable=False)
@@ -98,6 +96,7 @@ class Cache(db.Model):
     """
     __tablename__ = "caches"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String, nullable=False)
     created_by = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
@@ -108,8 +107,9 @@ class Cache(db.Model):
     last_found = db.Column(db.Integer)
     date_created = db.Column(db.Integer, nullable=False)
 
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches")
-    user_favorites = db.relationship("User", secondary=favorites_table, back_populates="caches")
+    user_favorited = db.relationship("User", secondary=favorites_table, back_populates="caches")
 
     def __init__(self, **kwargs):
         """
