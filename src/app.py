@@ -6,8 +6,8 @@ from flask import Flask
 from flask import request
 import json
 import users_dao
-
-import datetime
+from datetime import datetime
+# import datetime
 import time
 
 
@@ -20,7 +20,7 @@ app.config["SQLALCHEMY_ECHO"] = True
 
 db.init_app(app)
 with app.app_context():
-    # db.drop_all()
+    db.drop_all()
     db.create_all()
 
 # Generalized response formats
@@ -115,6 +115,8 @@ def login():
     if not was_successful:
         return failure_response("Incorrect username or password", 401)
     
+    user.renew_session()
+
     return success_response(
         {
         "session_token": user.session_token,
@@ -163,7 +165,7 @@ def logout():
     if not user or not user.verify_session_token(session_token):
         return failure_response("Invalid session token")
 
-    user.session_expiration = datetime.datetime.now()
+    user.session_expiration = datetime.now()
     db.session.commit()
 
     return success_response({
