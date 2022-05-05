@@ -122,12 +122,12 @@ def get_cache(username):
     """
     user = User.query.filter_by(username=username).first()
     if user is None:
-        return failure_response("Invalid user!", 404)
+        return failure_response("User not found!", 404)
 
     caches = []
     for cache in Cache.query.filter_by(created_by=username):
         caches.append(cache.serialize())
-    return success_response({"caches": caches})
+    return success_response({"my_caches": caches})
 
 # Route 10: Get all caches for a user (that they completed)
 @app.route("/api/caches/<int:user_id>/completed/")
@@ -142,7 +142,7 @@ def get_completed_cache(user_id):
     caches = []
     for cache in user.caches_completed:
         caches.append(cache.serialize())
-    return success_response({"caches": caches})
+    return success_response({"completed_caches": caches})
 
 # Route 11: Get all caches for a user (that they favorited)
 @app.route("/api/caches/<int:user_id>/favorited/")
@@ -157,11 +157,14 @@ def get_favorited_cache(user_id):
     caches = []
     for cache in user.caches_favorited:
         caches.append(cache.serialize())
-    return success_response({"caches": caches})
+    return success_response({"favorite_caches": caches})
 
 # Route 12: Get caches that follow a certain category (size, difficulty, etc)
 # How would we do something like get all caches closest to me (some kind of sorting)
 # what i could do is make every category 1-5 so i could sort it based on numerical order
+# Categories:
+# recently addded (date_created), location (maybe add like "distance from me"),
+# size, difficulty, terrain
 @app.route("/api/caches/<category>/<item>/", methods=["POST"])
 def get_conditional_cache(category, item):
     """
@@ -242,7 +245,7 @@ def add_cache(user_id):
     cache.last_found = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
     user.caches_completed.append(cache)
     db.session.commit()
-    return success_response(cache.serialize())
+    return success_response({"completed_cache": cache.serialize()})
 
 # Route 15: Add a cache to a specific user's favorites
 @app.route("/api/caches/<int:user_id>/favorited/add/", methods=["POST"])
@@ -262,7 +265,7 @@ def add_favorite(user_id):
     cache = Cache.query.filter_by(id=cache_id).first()
     user.caches_favorited.append(cache)
     db.session.commit()
-    return success_response(cache.serialize())
+    return success_response({"favorited_cache":cache.serialize()})
 
 # Route 16: Delete cache by id
 @app.route("/api/caches/<cache_id>/", methods=["DELETE"])

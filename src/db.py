@@ -103,8 +103,8 @@ class Cache(db.Model):
     description = db.Column(db.String, nullable=False)
     hint = db.Column(db.String, nullable=False)
     size = db.Column(db.String, nullable=False)
-    difficulty = db.Column(db.String, nullable=False)
-    terrain = db.Column(db.String, nullable=False)
+    difficulty = db.Column(db.Integer, nullable=False)
+    terrain = db.Column(db.Integer, nullable=False)
     last_found = db.Column(db.String, nullable=False)
     date_created = db.Column(db.String, nullable=False)
 
