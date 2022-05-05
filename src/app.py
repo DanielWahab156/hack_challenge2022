@@ -249,7 +249,7 @@ def get_favorited_cache(user_id):
 # Categories:
 # recently addded (date_created), location (maybe add like "distance from me"),
 # size, difficulty, terrain
-@app.route("/api/caches/<category>/<item>/", methods=["POST"])
+@app.route("/api/caches/<category>/<item>/")
 def get_conditional_cache(category, item):
     """
     Endpoint for getting all caches that follow a certain category
