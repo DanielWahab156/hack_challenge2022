@@ -1,9 +1,13 @@
 from db import db
 from db import User
 from db import Cache
-from flask import Flask, request
+from flask import Flask
+from flask import request
 import json
 import os
+
+from datetime import datetime
+import time
 
 
 app = Flask(__name__)
@@ -36,9 +40,10 @@ def failure_response(message, code=404):
 
 # Route 1: Get session token
 @app.route("/secret/", methods=["GET"])
+# don't need this. the frontend stores this.
 
 # Route 2: Get a specific user
-@app.route("/users/<int:user_id>/")
+@app.route("/api/users/<int:user_id>/")
 def get_user(user_id):
     """
     Endpoint for getting user by id
@@ -48,11 +53,11 @@ def get_user(user_id):
         return failure_response("User not found!")
     return success_response(user.serialize())
 
-# Route 3: Create a new user
-@app.route("/users/", methods=["POST"])
+# Route 3: Register a new user
+@app.route("/api/users/", methods=["POST"])
 def create_user():
     """
-    Endpoint for creating a new user
+    Endpoint for registering/creating a new user
     """
     body = json.loads(request.data)
 
@@ -63,9 +68,6 @@ def create_user():
     if username is None:
         return failure_response("Enter valid username!", 400)
 
-    # if user tries to take an already created username or is this covered by
-    # the fact that username is unique? (which would create an error when we try
-    # to create a new User object)
     user = User.query.filter_by(username=username).first()
     if user is not None:
         return failure_response("Username already taken!", 400)
@@ -85,7 +87,7 @@ def create_user():
 @app.route("/logout/", methods=["POST"])
 
 # Route 7: Delete a user by id
-@app.route("/users/<int:user_id>/", methods=["DELETE"])
+@app.route("/api/users/<int:user_id>/", methods=["DELETE"])
 def delete_user(user_id):
     """
     Endpoint for deleting a user by id
@@ -101,8 +103,8 @@ def delete_user(user_id):
 
 # -- Cache ROUTES ------------------------------------------------------ 
 
-# Route 1: Get all caches
-@app.route("/caches/")
+# Route 8: Get all caches
+@app.route("/api/caches/")
 def get_all_caches():
     """
     Endpoint for getting all caches
@@ -112,20 +114,24 @@ def get_all_caches():
         caches.append(cache.serialize())
     return success_response({"caches": caches})
 
-# Route 2: Get all caches for a user (that they created)
-@app.route("/caches/<username>/")
+# Route 9: Get all caches for a user (that they created)
+@app.route("/api/caches/<username>/")
 def get_cache(username):
     """
     Endpoint for getting all caches for a specific user (that they created)
     """
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        return failure_response("Invalid user!", 404)
+
     caches = []
     for cache in Cache.query.filter_by(created_by=username):
         caches.append(cache.serialize())
     return success_response({"caches": caches})
 
-# Route 3: Get all caches for a user (that they completed)
-@app.route("/caches/<int:user_id>/")
-def get_cache(user_id):
+# Route 10: Get all caches for a user (that they completed)
+@app.route("/api/caches/<int:user_id>/completed/")
+def get_completed_cache(user_id):
     """
     Endpoint for getting all caches for a specific user (that they completed)
     """
@@ -138,11 +144,11 @@ def get_cache(user_id):
         caches.append(cache.serialize())
     return success_response({"caches": caches})
 
-# Route 4: Get all caches for a user (that they favorited)
-@app.route("/caches/<int:user_id>/")
-def get_cache(user_id):
+# Route 11: Get all caches for a user (that they favorited)
+@app.route("/api/caches/<int:user_id>/favorited/")
+def get_favorited_cache(user_id):
     """
-    Endpoint for getting all caches for a specific user (that they favorited)
+    Endpoint for getting  fall caches for a specific user (that they favorited)
     """
     user = User.query.filter_by(id=user_id).first()
     if user is None:
@@ -153,10 +159,10 @@ def get_cache(user_id):
         caches.append(cache.serialize())
     return success_response({"caches": caches})
 
-# Route 5: Get caches that follow a certain category (size, difficulty, etc)
-# How would we do something like get all caches closest to me
-# I don't think this is right.
-@app.route("/caches/<category>/<item>/", methods=["POST"])
+# Route 12: Get caches that follow a certain category (size, difficulty, etc)
+# How would we do something like get all caches closest to me (some kind of sorting)
+# what i could do is make every category 1-5 so i could sort it based on numerical order
+@app.route("/api/caches/<category>/<item>/", methods=["POST"])
 def get_conditional_cache(category, item):
     """
     Endpoint for getting all caches that follow a certain category
@@ -166,9 +172,8 @@ def get_conditional_cache(category, item):
         caches.append(cache.seralize())
     return success_response({"caches": caches})
 
-
-# Route 6: Create a cache (associated with a specific user)
-@app.route("/caches/<int:user_id>/", methods=["POST"])
+# Route 13: Create a cache (associated with a specific user)
+@app.route("/api/caches/<int:user_id>/", methods=["POST"])
 def create_cache(user_id):
     """
     Endpoint for creating a cache for a user
@@ -178,8 +183,10 @@ def create_cache(user_id):
         return failure_response("User not found")
 
     body = json.loads(request.data)
+    name = body.get("name")
+    if name is None:
+        return failure_response("Enter valid name", 400)
     created_by = body.get("created_by")
-    # how do I make sure this is a valid username?
     if created_by != user.username:
         return failure_response("Incorrect username", 400)
     location = body.get("location")
@@ -192,12 +199,13 @@ def create_cache(user_id):
     size = body.get("size")
     difficulty = body.get("difficulty")
     terrain = body.get("terrain")
-    last_found = body.get("last_found")
-    date_created = body.get("date_created")
-    if date_created is None:
-        return failure_response("Enter valid date", 400)
+    
+    last_found = "no finds yet!"
+    ts = int(time.time())
+    date_created = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
     
     new_cache = Cache(
+        name=name,
         created_by=created_by,
         location=location,
         description=description,
@@ -214,8 +222,8 @@ def create_cache(user_id):
     db.session.commit()
     return success_response(new_cache.serialize(), 201)
 
-# Route 7: Add a cache to a specific user's completed_caches
-@app.route("/caches/<int:user_id>/add/completed/", methods=["POST"])
+# Route 14: Add a cache to a specific user's completed_caches
+@app.route("/api/caches/<int:user_id>/completed/add/", methods=["POST"])
 def add_cache(user_id):
     """
     Endpoint for adding a cache to a specific user's completed caches or favorites
@@ -230,12 +238,14 @@ def add_cache(user_id):
         return failure_response("Enter valid cache!", 400)
     
     cache = Cache.query.filter_by(id=cache_id).first()
+    ts = int(time.time())
+    cache.last_found = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
     user.caches_completed.append(cache)
     db.session.commit()
     return success_response(cache.serialize())
 
-# Route 8: Add a cache to a specific user's favorites
-@app.route("/caches/<int:user_id>/add/favorited/", methods=["POST"])
+# Route 15: Add a cache to a specific user's favorites
+@app.route("/api/caches/<int:user_id>/favorited/add/", methods=["POST"])
 def add_favorite(user_id):
     """
     Endpoint for adding a cache to a user's favorited caches
@@ -254,36 +264,8 @@ def add_favorite(user_id):
     db.session.commit()
     return success_response(cache.serialize())
 
-# Route 7&8: Update the status of a cache (completed or favorited)
-@app.route("/caches/<int:user_id>/add/", methods=["POST"])
-def add_cache(user_id):
-    """
-    Endpoint for updating the status of a cache (completed or favorited)
-    """
-    user = User.query.filter_by(id=user_id).first()
-    if user is None:
-        return failure_response("User not found!")
-    
-    body = json.loads(request.data)
-    cache_id = body.get("cache_id")
-    if cache_id is None:
-        return failure_response("Enter valid cache!", 400)
-    status = body.get("status")
-    if status is None:
-        return failure_response("Ivalid status", 400)
-
-    cache = Cache.query.filter_by(id=cache_id).first()
-    if status == "completed":
-        user.caches_completed.append(cache)
-    if status == "favorited":
-        user.caches_favorited.append(cache)
-
-    db.session.commit()
-    return success_response(cache.serialize())
-
-
-# Route 9: Delete cache by id
-@app.route("/caches/<cache_id>", methods=["DELETE"])
+# Route 16: Delete cache by id
+@app.route("/api/caches/<cache_id>/", methods=["DELETE"])
 def delete_cache(cache_id):
     """
     Endpoint for deleting a cache
@@ -295,6 +277,21 @@ def delete_cache(cache_id):
     db.session.delete(cache)
     db.session.commit()
     return success_response(cache.serialize())
+
+
+# -- Testing ROUTES ------------------------------------------------------
+
+# Route 17: Get all users
+@app.route("/api/users/")
+def get_all_users():
+    """
+    Endpoint for getting all users
+    """
+    users = []
+    for user in User.query.all():
+        users.append(user.serialize())
+    return success_response({"users": users})
+
 
 
 if __name__ == "__main__":

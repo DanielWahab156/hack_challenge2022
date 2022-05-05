@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 import datetime
 import hashlib
 import os
-import bcrypt
+# import bcrypt
 
 db = SQLAlchemy()
 
@@ -27,21 +27,21 @@ class User(db.Model):
     name = db.Column(db.String, nullable=False)
     username = db.Column(db.String, nullable=False, unique=True)
     
-    caches = db.relationship("Cache")
-    caches_completed = db.relationship("Cache", secondary=caches_completed_table, back_populates="users")
-    caches_favorited = db.relationship("Cache", secondary=favorites_table, back_populates="users")
+    caches_created = db.relationship("Cache")
+    caches_completed = db.relationship("Cache", secondary=caches_completed_table, back_populates="user_completed")
+    caches_favorited = db.relationship("Cache", secondary=favorites_table, back_populates="user_favorited")
 
-    session_token = db.Column(db.String, nullable=False)
-    session_expiration = db.Column(db.DateTime, nullable=False)
-    update_token = db.Column(db.String, nullable=False, unique=True)
+    # session_token = db.Column(db.String, nullable=False)
+    # session_expiration = db.Column(db.DateTime, nullable=False)
+    # update_token = db.Column(db.String, nullable=False, unique=True)
 
     def __init__(self, **kwargs):
         """
         Initializes a User object
         """
+        self.name = kwargs.get("name")
         self.username = kwargs.get("username", "")
-        self.caches_completed = kwargs.get("caches_completed")
-        self.favorites = kwargs.get("favorites")
+        # self.renew_session()
 
     def serialize(self):
         """
@@ -49,9 +49,11 @@ class User(db.Model):
         """
         return {
             "id": self.id,
+            "name": self.name,
             "username": self.username,
-            "caches_completed": [cache.simple_serialize() for cache in self.caches_completed],
-            "favorites": self.favorites,
+            "caches_created": [cache.serialize() for cache in self.caches_created],
+            "caches_completed": [cache.serialize() for cache in self.caches_completed],
+            "favorites": [cache.serialize() for cache in self.caches_favorited],
         }
     
     def _urlsafe_base_64(self):
@@ -97,25 +99,24 @@ class Cache(db.Model):
     __tablename__ = "caches"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
-    created_by = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
-    hint = db.Column(db.String)
-    size = db.Column(db.String)
-    difficulty = db.Column(db.String)
-    terrain = db.Column(db.String)
-    last_found = db.Column(db.Integer)
-    date_created = db.Column(db.Integer, nullable=False)
+    hint = db.Column(db.String, nullable=False)
+    size = db.Column(db.String, nullable=False)
+    difficulty = db.Column(db.String, nullable=False)
+    terrain = db.Column(db.String, nullable=False)
+    last_found = db.Column(db.String, nullable=False)
+    date_created = db.Column(db.String, nullable=False)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches")
-    user_favorited = db.relationship("User", secondary=favorites_table, back_populates="caches")
+    created_by = db.Column(db.Integer, db.ForeignKey("users.username"), nullable=False)
+    user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches_completed")
+    user_favorited = db.relationship("User", secondary=favorites_table, back_populates="caches_favorited")
 
     def __init__(self, **kwargs):
         """
         Initializes a Cache object
         """
-        self.created_by = kwargs.get("created_by", "")
+        self.name = kwargs.get("name", "")
         self.location = kwargs.get("location", "")
         self.description = kwargs.get("description", "")
         self.hint = kwargs.get("hint", "")
@@ -124,15 +125,17 @@ class Cache(db.Model):
         self.terrain = kwargs.get("terrain", "")
         self.last_found = kwargs.get("last_found", "")
         self.date_created = kwargs.get("date_created", "")
+        self.created_by = kwargs.get("created_by", "")
 
     def serialize(self):
         """
         Serializes a Cache object
         """
-        user = User.query.filter_by(username=self.username)
+        user = User.query.filter_by(username=self.created_by).first()
         return {
             "id": self.id,
-            "username": user.username,
+            "name": self.name,
+            "created_by": user.username,
             "location": self.location,
             "description": self.description,
             "hint": self.hint,
