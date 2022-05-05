@@ -1,7 +1,8 @@
 # hack_challenge2022
-Hack Challenge for AppDev Course Spring 2022
+Hack Challenge for AppDev Course Spring 2022 (Team 15)
 
-Hack Challenge Team 15
+Contributors:
+James Kim, Eric Zhang, Alex Lee
 
 Project Title: 
 Cornell Caching
