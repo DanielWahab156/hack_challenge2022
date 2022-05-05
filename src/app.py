@@ -5,10 +5,9 @@ from db import Cache
 from flask import Flask
 from flask import request
 import json
-import os
 import users_dao
 
-from datetime import datetime
+import datetime
 import time
 
 
@@ -21,7 +20,7 @@ app.config["SQLALCHEMY_ECHO"] = True
 
 db.init_app(app)
 with app.app_context():
-    db.drop_all()
+    # db.drop_all()
     db.create_all()
 
 # Generalized response formats
@@ -54,11 +53,7 @@ def extract_token(request):
 
 # -- User ROUTES ------------------------------------------------------
 
-# Route 1: Get session token
-@app.route("/secret/", methods=["GET"])
-# don't need this. the frontend stores this.
-
-# Route 2: Get a specific user
+# Route 1: Get a specific user
 @app.route("/api/users/<int:user_id>/")
 def get_user(user_id):
     """
@@ -69,7 +64,7 @@ def get_user(user_id):
         return failure_response("User not found!")
     return success_response(user.serialize())
 
-# Route 3: Register a new user
+# Route 2: Register a new user
 @app.route("/register/", methods=["POST"])
 def register_user():
     """
@@ -100,7 +95,7 @@ def register_user():
         }, 201  
     )
 
-# Route 4: Logging in a user
+# Route 3: Logging in a user
 @app.route("/login/", methods=["POST"])
 def login():
     """
@@ -128,7 +123,7 @@ def login():
         },
     )
 
-# Route 5: Update a user's session
+# Route 4: Update a user's session
 @app.route("/session/", methods=["POST"])
 def update_session():
     """
@@ -152,7 +147,7 @@ def update_session():
         }, 201 
     )
 
-# Route 6: Logging out a user
+# Route 5: Logging out a user
 @app.route("/logout/", methods=["POST"])
 def logout():
     """
@@ -168,14 +163,14 @@ def logout():
     if not user or not user.verify_session_token(session_token):
         return failure_response("Invalid session token")
 
-    user.session_expriation = datetime.datetime.now()
+    user.session_expiration = datetime.datetime.now()
     db.session.commit()
 
     return success_response({
         "message": "You have successfully logged out"
     })
 
-# Route 7: Delete a user by id
+# Route 6: Delete a user by id
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])
 def delete_user(user_id):
     """
@@ -192,7 +187,7 @@ def delete_user(user_id):
 
 # -- Cache ROUTES ------------------------------------------------------ 
 
-# Route 8: Get all caches
+# Route 7: Get all caches
 @app.route("/api/caches/")
 def get_all_caches():
     """
@@ -203,7 +198,7 @@ def get_all_caches():
         caches.append(cache.serialize())
     return success_response({"caches": caches})
 
-# Route 9: Get all caches for a user (that they created)
+# Route 8: Get all caches for a user (that they created)
 @app.route("/api/caches/<username>/")
 def get_cache(username):
     """
@@ -218,7 +213,7 @@ def get_cache(username):
         caches.append(cache.serialize())
     return success_response({"my_caches": caches})
 
-# Route 10: Get all caches for a user (that they completed)
+# Route 9: Get all caches for a user (that they completed)
 @app.route("/api/caches/<int:user_id>/completed/")
 def get_completed_cache(user_id):
     """
@@ -233,7 +228,7 @@ def get_completed_cache(user_id):
         caches.append(cache.serialize())
     return success_response({"completed_caches": caches})
 
-# Route 11: Get all caches for a user (that they favorited)
+# Route 10: Get all caches for a user (that they favorited)
 @app.route("/api/caches/<int:user_id>/favorited/")
 def get_favorited_cache(user_id):
     """
@@ -248,7 +243,7 @@ def get_favorited_cache(user_id):
         caches.append(cache.serialize())
     return success_response({"favorite_caches": caches})
 
-# Route 12: Get caches that follow a certain category (size, difficulty, etc)
+# Route 11: Get caches that follow a certain category (size, difficulty, etc)
 # How would we do something like get all caches closest to me (some kind of sorting)
 # what i could do is make every category 1-5 so i could sort it based on numerical order
 # Categories:
@@ -264,7 +259,7 @@ def get_conditional_cache(category, item):
         caches.append(cache.seralize())
     return success_response({"caches": caches})
 
-# Route 13: Create a cache (associated with a specific user)
+# Route 12: Create a cache (associated with a specific user)
 @app.route("/api/caches/<int:user_id>/", methods=["POST"])
 def create_cache(user_id):
     """
@@ -314,7 +309,7 @@ def create_cache(user_id):
     db.session.commit()
     return success_response(new_cache.serialize(), 201)
 
-# Route 14: Add a cache to a specific user's completed_caches
+# Route 13: Add a cache to a specific user's completed_caches
 @app.route("/api/caches/<int:user_id>/completed/add/", methods=["POST"])
 def add_cache(user_id):
     """
@@ -336,7 +331,7 @@ def add_cache(user_id):
     db.session.commit()
     return success_response({"completed_cache": cache.serialize()})
 
-# Route 15: Add a cache to a specific user's favorites
+# Route 14: Add a cache to a specific user's favorites
 @app.route("/api/caches/<int:user_id>/favorited/add/", methods=["POST"])
 def add_favorite(user_id):
     """
@@ -356,7 +351,7 @@ def add_favorite(user_id):
     db.session.commit()
     return success_response({"favorited_cache":cache.serialize()})
 
-# Route 16: Delete cache by id
+# Route 15: Delete cache by id
 @app.route("/api/caches/<cache_id>/", methods=["DELETE"])
 def delete_cache(cache_id):
     """
@@ -373,7 +368,7 @@ def delete_cache(cache_id):
 
 # -- Testing ROUTES ------------------------------------------------------
 
-# Route 17: Get all users
+# Route 16: Get all users
 @app.route("/api/users/")
 def get_all_users():
     """
