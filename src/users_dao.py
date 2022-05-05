@@ -8,11 +8,11 @@ from db import db
 from db import User
 
 
-def get_user_by_email(email):
+def get_user_by_username(username):
     """
     Returns a user object from the database given an email
     """
-    return User.query.filter(User.email == email).first()
+    return User.query.filter(User.username == username).first()
 
 
 def get_user_by_session_token(session_token):
@@ -29,11 +29,11 @@ def get_user_by_update_token(update_token):
     return User.query.filter(User.update_token == update_token).first()
 
 
-def verify_credentials(email, password):
+def verify_credentials(username, password):
     """
     Returns true if the credentials match, otherwise returns false
     """
-    optional_user = get_user_by_email(email)
+    optional_user = get_user_by_username(username)
 
     if optional_user is None:
         return False, None
@@ -41,24 +41,23 @@ def verify_credentials(email, password):
     return optional_user.verify_password(password), optional_user
 
 
-def create_user(email, password):
+def create_user(name, username, email, password):
     """
     Creates a User object in the database
 
     Returns if creation was successful, and the User object
     """
-    optional_user = get_user_by_email(email)
-    # see if this user is already in our database. Optional is a data type.
+    optional_user = get_user_by_username(username)
     
     if optional_user is not None:
         return False, optional_user
     
-    user = User(email=email, password=password)
+    user = User(name=name, username=username, email=email, password=password)
 
     db.session.add(user)
     db.session.commit()
     return True, user
-    
+
 
 def renew_session(update_token):
     """

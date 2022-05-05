@@ -1,3 +1,4 @@
+from unittest.result import failfast
 from db import db
 from db import User
 from db import Cache
@@ -5,6 +6,7 @@ from flask import Flask
 from flask import request
 import json
 import os
+import users_dao
 
 from datetime import datetime
 import time
@@ -22,7 +24,7 @@ with app.app_context():
     db.drop_all()
     db.create_all()
 
-#generalized response formats
+# Generalized response formats
 def success_response(data, code=200):
     """
     Generalized success response function
@@ -34,6 +36,20 @@ def failure_response(message, code=404):
     Generalized failure response function
     """
     return json.dumps({"error": message}), code
+
+def extract_token(request):
+    """
+    Extracts the token from the header of a request
+    Bearer is the type of token we're returning
+    """
+    auth_header= request.headers.get("Authorization")
+
+    if auth_header is None:
+        return False, json.dumps({"Missing authorization header"})
+    
+    bearer_token = auth_header.replace("Bearer", "").strip()
+
+    return True, bearer_token
 
 
 # -- User ROUTES ------------------------------------------------------
@@ -54,13 +70,16 @@ def get_user(user_id):
     return success_response(user.serialize())
 
 # Route 3: Register a new user
-@app.route("/api/users/", methods=["POST"])
-def create_user():
+@app.route("/register/", methods=["POST"])
+def register_user():
     """
     Endpoint for registering/creating a new user
     """
     body = json.loads(request.data)
-
+    email = body.get("email")
+    password = body.get("password")
+    if email is None or password is None:
+        return failure_response("Missing email or password")
     name = body.get("name")
     if name is None:
         return failure_response("Enter valid name!", 400)
@@ -68,23 +87,93 @@ def create_user():
     if username is None:
         return failure_response("Enter valid username!", 400)
 
-    user = User.query.filter_by(username=username).first()
-    if user is not None:
-        return failure_response("Username already taken!", 400)
+    was_successful, user = users_dao.create_user(name, username, email, password)
 
-    new_user = User(name=name, username=username)
-    db.session.add(new_user)
-    db.session.commit()
-    return success_response(new_user.serialize(), 201)
+    if not was_successful:
+        return failure_response("Username already taken!")
+
+    return success_response(
+        {
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+        }, 201  
+    )
 
 # Route 4: Logging in a user
 @app.route("/login/", methods=["POST"])
+def login():
+    """
+    Endpoint for logging in a user
+    """
+    body = json.loads(request.data)
+
+    username = body.get("username")
+    if username is None:
+        return failure_response("Enter your username!", 400)
+    password = body.get("password")
+    if password is None:
+        return failure_response("Enter your password!", 400)
+    
+    was_successful, user = users_dao.verify_credentials(username, password)
+
+    if not was_successful:
+        return failure_response("Incorrect username or password", 401)
+    
+    return success_response(
+        {
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+        },
+    )
 
 # Route 5: Update a user's session
 @app.route("/session/", methods=["POST"])
+def update_session():
+    """
+    Endpoint for updating a user's session
+    """
+    was_successful, update_token = extract_token(request)
+
+    if not was_successful:
+        return update_token
+    
+    try:
+        user = users_dao.renew_session(update_token)
+    except Exception as e:
+        return failure_response(f"Invalid update token: {str(e)}")
+
+    return success_response(
+        {
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+        }, 201 
+    )
 
 # Route 6: Logging out a user
 @app.route("/logout/", methods=["POST"])
+def logout():
+    """
+    Endpoint for logging out a user
+    """
+    was_successful, session_token = extract_token(request)
+
+    if not was_successful:
+        return session_token
+    
+    user = users_dao.get_user_by_session_token(session_token)
+
+    if not user or not user.verify_session_token(session_token):
+        return failure_response("Invalid session token")
+
+    user.session_expriation = datetime.datetime.now()
+    db.session.commit()
+
+    return success_response({
+        "message": "You have successfully logged out"
+    })
 
 # Route 7: Delete a user by id
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])

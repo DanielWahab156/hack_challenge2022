@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 import datetime
 import hashlib
 import os
-# import bcrypt
+import bcrypt
 
 db = SQLAlchemy()
 
@@ -26,14 +26,18 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     username = db.Column(db.String, nullable=False, unique=True)
-    
+    email = db.Column(db.String, nullable=False, unique=True)
+    password_digest = db.Column(db.String, nullable=False)
+
+    # Relationships
     caches_created = db.relationship("Cache")
     caches_completed = db.relationship("Cache", secondary=caches_completed_table, back_populates="user_completed")
     caches_favorited = db.relationship("Cache", secondary=favorites_table, back_populates="user_favorited")
 
-    # session_token = db.Column(db.String, nullable=False)
-    # session_expiration = db.Column(db.DateTime, nullable=False)
-    # update_token = db.Column(db.String, nullable=False, unique=True)
+    # Session information
+    session_token = db.Column(db.String, nullable=False, unique=True)
+    session_expiration = db.Column(db.DateTime, nullable=False)
+    update_token = db.Column(db.String, nullable=False, unique=True)
 
     def __init__(self, **kwargs):
         """
@@ -41,7 +45,9 @@ class User(db.Model):
         """
         self.name = kwargs.get("name")
         self.username = kwargs.get("username", "")
-        # self.renew_session()
+        self.email = kwargs.get("email")
+        self.password_digest = bcrypt.hashpw(kwargs.get("password").encode("utf8"), bcrypt.gensalt(rounds=13))
+        self.renew_session()
 
     def serialize(self):
         """
@@ -108,6 +114,7 @@ class Cache(db.Model):
     last_found = db.Column(db.String, nullable=False)
     date_created = db.Column(db.String, nullable=False)
 
+    # Relationships
     created_by = db.Column(db.Integer, db.ForeignKey("users.username"), nullable=False)
     user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches_completed")
     user_favorited = db.relationship("User", secondary=favorites_table, back_populates="caches_favorited")
