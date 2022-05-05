@@ -255,8 +255,9 @@ def get_conditional_cache(category, item):
     Endpoint for getting all caches that follow a certain category
     """
     caches = []
-    for cache in Cache.query.filter_by(category=item):
-        caches.append(cache.seralize())
+    kwargs = {category:item}
+    for cache in Cache.query.filter_by(**kwargs):
+        caches.append(cache.serialize())
     return success_response({"caches": caches})
 
 # Route 12: Create a cache (associated with a specific user)
