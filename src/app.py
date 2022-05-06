@@ -116,6 +116,7 @@ def login():
         return failure_response("Incorrect username or password", 401)
     
     user.renew_session()
+    db.session.commit()
 
     return success_response(
         {
@@ -182,7 +183,7 @@ def delete_user(user_id):
     if user is None:
         return failure_response("User not found!")
 
-    db.session.delete(user)
+    user.deactivated = True
     db.session.commit()
     return success_response(user.serialize())
 
@@ -378,7 +379,7 @@ def get_all_users():
     Endpoint for getting all users
     """
     users = []
-    for user in User.query.all():
+    for user in User.query.filter_by(deactivated=False).all():
         users.append(user.serialize())
     return success_response({"users": users})
 

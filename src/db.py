@@ -28,6 +28,7 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     email = db.Column(db.String, nullable=False, unique=True)
     password_digest = db.Column(db.String, nullable=False)
+    deactivated = db.Column(db.Boolean, nullable=False)
 
     # Relationships
     caches_created = db.relationship("Cache")
@@ -47,6 +48,7 @@ class User(db.Model):
         self.username = kwargs.get("username", "")
         self.email = kwargs.get("email")
         self.password_digest = bcrypt.hashpw(kwargs.get("password").encode("utf8"), bcrypt.gensalt(rounds=13))
+        self.deactivated = False
         self.renew_session()
 
     def serialize(self):
@@ -115,7 +117,7 @@ class Cache(db.Model):
     date_created = db.Column(db.String, nullable=False)
 
     # Relationships
-    created_by = db.Column(db.Integer, db.ForeignKey("users.username"), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     user_completed = db.relationship("User", secondary=caches_completed_table, back_populates="caches_completed")
     user_favorited = db.relationship("User", secondary=favorites_table, back_populates="caches_favorited")
 
@@ -132,13 +134,13 @@ class Cache(db.Model):
         self.terrain = kwargs.get("terrain", "")
         self.last_found = kwargs.get("last_found", "")
         self.date_created = kwargs.get("date_created", "")
-        self.created_by = kwargs.get("created_by", "")
+        self.created_by = kwargs.get("created_by")
 
     def serialize(self):
         """
         Serializes a Cache object
         """
-        user = User.query.filter_by(username=self.created_by).first()
+        user = User.query.filter_by(id=self.created_by).first()
         return {
             "id": self.id,
             "name": self.name,

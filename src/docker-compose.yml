@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  demo:
+    image: doctakim/hack_challenge2022
+    ports:
+      - "5000:5000"
